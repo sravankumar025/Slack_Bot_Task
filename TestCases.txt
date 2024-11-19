@@ -1,0 +1,27 @@
+1. Slash Command Handling
+        Test Case Name: /approval-test  
+        Description: Ensure that triggering the /approval-test slash command opens a modal in Slack channel.
+        Input: /approval-test slash command from a user.
+        Expected Output: Modal opens with dropdown, text area, and submit button.
+
+
+2. Modal Submission
+        Test Case Name: Approval Submission
+        Description: Verify that submitting the modal sends an approval request to the selected approver.
+        Input:Dropdown selection of approver: SampleUser.
+             Text entered for approval: "Please approve my request."
+        Expected Output: Approver 'SampleUser' receives a Slack message with the approval request and two buttons: Approve and Reject.
+
+
+3. Approver Action - Approve
+        Test Case Name: Approves the request
+        Description: Ensure that when the approver clicks the Approve button, the requester is notified of the approval.
+        Input: Approver clicks Approve in the Slack message.
+        Expected Output: Requester receives a notification: "Your approval request has been approved by [Approver]."
+
+
+4. Approver Action - Reject
+        Test Case Name: Rejects the Request
+        Description: Ensure that when the approver clicks the Reject button, the requester is notified of the rejection.
+        Input: Approver clicks Reject in the Slack message.
+        Expected Output: Requester receives a notification: "Your approval request has been rejected by [Approver]."
