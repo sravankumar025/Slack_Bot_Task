@@ -1,37 +1,34 @@
 const { App } = require("@slack/bolt");
-const express = require('express');
-const bodyParser = require('body-parser');
 require("dotenv").config();
 
+// Initialize the Slack app with Bolt, using environment variables for configuration
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
   appToken: process.env.SLACK_APP_TOKEN,
   socketMode: true,
 });
-const expressApp = express();
 
-// Body Parser Middleware
-expressApp.use(bodyParser.json());
-
-// Command to open the modal
+// Command {/approval-test}to open the modal
+//When we enter the command /approval-test in slack channel it will open the modal where we can create a request for approval
 app.command("/approval-test", async ({ command, ack, client }) => {
-  // console.log("Received /approval-test command:", command);
+  console.log("Received /approval-test command:", command);
   await ack();
 
   try {
     const users = await client.users.list();
+    //Here we will be filtering the members of the channel excluding the bots which are there
     const userOptions = users.members
-      .filter((user) => !user.is_bot && !user.deleted) // Exclude bots and deleted users
+      .filter((user) => !user.is_bot && !user.deleted && user.id!='USLACKBOT')
       .map((user) => ({
         text: {
           type: "plain_text",
           text: user.real_name,
         },
-        value: user.id, // Slack user ID
+        value: user.id,
       }));
 
-    // Open the modal with the user dropdown
+    // This will open the modal with a dropdown of members and a textarea box to write something about approval request
     await client.views.open({
       trigger_id: command.trigger_id,
       view: {
@@ -76,6 +73,7 @@ app.command("/approval-test", async ({ command, ack, client }) => {
             },
           },
         ],
+        //Submit button
         submit: {
           type: "plain_text",
           text: "Submit",
@@ -88,7 +86,7 @@ app.command("/approval-test", async ({ command, ack, client }) => {
   }
 });
 
-// Handle modal submission
+// Handles the modal submission where the Approver will see the text sent by the reuester and two buttons Approve and Reject
 app.view("user_selection_modal", async ({ view, ack, client }) => {
   await ack();
 
@@ -97,9 +95,9 @@ app.view("user_selection_modal", async ({ view, ack, client }) => {
   const additionalComments =
     view.state.values.additional_comments_section.comments_input.value;
 
-  const requesterId =view.private_metadata; // Store the requester's ID
+     // Store the requester's ID so that we should notify back to this requester whether it is approved or rejected
+  const requesterId =view.private_metadata;
 
-  // Send message to the selected approver
   console.log(approverSelected, 'approver');
 
   try {
@@ -111,7 +109,7 @@ app.view("user_selection_modal", async ({ view, ack, client }) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: additionalComments || "No additional comments provided.",
+            text: additionalComments,
           },
         },
         {
@@ -148,14 +146,14 @@ app.view("user_selection_modal", async ({ view, ack, client }) => {
   }
 });
 
-// Handle button clicks
+// Handle button clicks, Where the approver will be clicking on approve button and the requester will be notified via requesterId
 app.action("approve_button", async ({ body, ack, client,view }) => {
   await ack();
 
-  const { action, requesterId, additionalComments } = JSON.parse(body.actions[0].value); // Parse the value to get action and requesterId
+  const { action, requesterId, additionalComments } = JSON.parse(body.actions[0].value); 
   console.log(body.user,'userID');
   await client.chat.postMessage({
-    channel: requesterId, // Notify the requester
+    channel: requesterId, 
     text: `Your request i.e, "${additionalComments}" has been approved!`,
   });
   await client.chat.postMessage({
@@ -188,10 +186,11 @@ app.action("approve_button", async ({ body, ack, client,view }) => {
   });
 });
 
+// Handle button clicks, Where the approver will be clicking on approve button and the requester will be notified via requesterId
 app.action("reject_button", async ({ body, ack, client }) => {
   await ack();
 
-  const { action, requesterId, additionalComments } = JSON.parse(body.actions[0].value); // Parse the value to get action and requesterId
+  const { action, requesterId, additionalComments } = JSON.parse(body.actions[0].value); 
   await client.chat.postMessage({
     channel: requesterId, // Notify the requester
     text:`Your request "${additionalComments}" has been rejected!`,
@@ -216,6 +215,8 @@ app.action("reject_button", async ({ body, ack, client }) => {
       },
       {
         type: "context",
+        /*Here Iam using a plain text, so that when the approver clicks on approve or reject button the buttons will be disabled 
+            and in that place the text will shown*/
         elements: [
           {
             type: "plain_text",
@@ -229,5 +230,5 @@ app.action("reject_button", async ({ body, ack, client }) => {
 
 (async () => {
   await app.start();
-  console.log("Slack bot is running!");
+  console.log("FutureBlink Slack bot is running!");
 })();
